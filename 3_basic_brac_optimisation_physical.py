@@ -1,4 +1,5 @@
 import random
+import matplotlib.pyplot as plt
 
 random.seed(42)
 
@@ -16,43 +17,45 @@ def calculate_shape(start_x, start_y, end_x, end_y, starting_velocity):
     shape = [y_range] * x_range
     return shape
 
+def calculate_current_velocity(start_y, by, starting_velocity):
+    h_diff = start_y - by
+    effective_h_diff = h_diff if h_diff > 0 else 0
+    vx = (2 * g * effective_h_diff+starting_velocity)**0.5
+    return vx
+
 def calculate_cost(ax, ay, bx, by, vx):
+    vc = vx
     h_diff = ay - by
     effective_h_diff = h_diff if h_diff > 0 else 0
-    vx = (2 * g * effective_h_diff)**0.5  # Ball can't go upwards without initial velocity
-    # Distance from A to X
+    vx = (2 * g * effective_h_diff + vx)**0.5
     s_ax = ((ax - bx)**2 + (ay - by)**2)**0.5
-    # Average velocity from A to X
-    v_ax = (vx + 0) / 2  # Initial velocity (v_A) is 0 because the ball starts from rest
-    # Time taken to travel from A to X (cost), assuming v_ax is not zero to avoid division by zero
+    v_ax = (vx + vc) / 2  
     time = s_ax / v_ax if v_ax != 0 else float('inf')
     return time
 
-def generate_graph_physical(shape, start_x, start_y, end_x, end_y, starting_velocity):
+def generate_graph_physical(shape, start_x, start_y, end_x, end_y, current_velocity):
     graph = {}
-    current_velocity = starting_velocity
-    # Adjust node generation to reflect x,y positions
-    for col in range(len(shape)):
+    for col in range(len(shape)): # Outer loop for columns
         x_position = start_x + col
-        y_position = start_y  # Starting y position for the top node in each column
-        for pos in range(shape[col]):
+        y_position = start_y
+        for pos in range(shape[col]): # Inner Loop for rows within each column
             y_position = start_y - pos
-            node = f"{x_position}_{y_position}"  # Node identifier now reflects its physical location
+            node = f"{x_position}_{y_position}"
+            current_velocity = calculate_current_velocity(start_y, y_position, starting_velocity)
             if col + 1 < len(shape):  # If not the last column
                 transitions = {}
                 next_x_position = start_x + col + 1
-                next_y_start = start_y  # Starting y position for the next column
-                for next_pos in range(shape[col + 1]):
+                next_y_start = start_y
+                for next_pos in range(shape[col + 1]): # Nested loop for possible transitions
                     next_y_position = start_y - next_pos
                     next_node = f"{next_x_position}_{next_y_position}"
-                    # Calculate cost based on y-position difference
                     cost = calculate_cost(x_position, y_position, next_x_position, next_y_position, current_velocity)
                     transitions[next_node] = cost
                     next_y_start -= 1  # Move down for the next node in the column
                 graph[node] = transitions
             else:
-                transitions = {}
-                cost = calculate_cost(x_position, y_position, end_x, end_y, 0)
+                current_velocity = calculate_current_velocity(start_y, y_position, starting_velocity)
+                cost = calculate_cost(x_position, y_position, end_x, end_y, current_velocity)
                 transitions[f"{end_x}_{end_y}"] = cost
                 graph[node] = transitions
             y_position -= 1  # Move down for the next node in the same column
@@ -60,7 +63,6 @@ def generate_graph_physical(shape, start_x, start_y, end_x, end_y, starting_velo
 
 shape = calculate_shape(start_x, start_y, end_x, end_y, starting_velocity)
 graph = generate_graph_physical(shape, start_x, start_y, end_x, end_y, starting_velocity)
-# print(graph)
 
 final_state = f"{end_x}_{end_y}"
 costs = {state: (float('inf'), None) for state in graph}
@@ -85,3 +87,19 @@ while current_state != final_state:
 
 print(optimal_path)
 
+# Extracting x and y coordinates from the path
+x_coords = [int(node.split('_')[0]) for node in optimal_path]
+y_coords = [int(node.split('_')[1]) for node in optimal_path]
+
+# Plotting
+plt.figure(figsize=(10, 6))
+plt.plot(x_coords, y_coords, marker='o', linestyle='-', color='b', label='Optimized Path')
+plt.scatter(x_coords, y_coords, color='red')  # Mark each point for clarity
+
+# Setting labels and title
+plt.xlabel('X Position')
+plt.ylabel('Y Position')
+plt.title('Optimized Path from Start to End')
+plt.legend()
+plt.grid(True)
+plt.show()
