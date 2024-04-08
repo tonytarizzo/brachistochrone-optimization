@@ -13,7 +13,7 @@ g = 9.81
 
 def calculate_shape(start_x, start_y, end_x, end_y, starting_velocity):
     x_range = abs(end_x - start_x + 1)
-    y_range = round((start_y - end_y)*1.5)
+    y_range = round((start_y - end_y)*3)
     shape = [y_range] * x_range
     return shape
 
